@@ -147,7 +147,7 @@ The ``addListener()`` method takes up to three arguments:
 
         use Symfony\Contracts\EventDispatcher\Event;
 
-        $dispatcher->addListener('acme.foo.action', function (Event $event) {
+        $dispatcher->addListener('acme.foo.action', function (Event $event): void {
             // will be executed when the acme.foo.action event is dispatched
         });
 
@@ -162,7 +162,7 @@ the ``Event`` object as the single argument::
     {
         // ...
 
-        public function onFooAction(Event $event)
+        public function onFooAction(Event $event): void
         {
             // ... do something
         }
@@ -236,13 +236,11 @@ determine which instance is passed.
 
         Note that ``AddEventAliasesPass`` has to be processed before ``RegisterListenersPass``.
 
-    By default, the listeners pass assumes that the event dispatcher's service
+    The listeners pass assumes that the event dispatcher's service
     id is ``event_dispatcher``, that event listeners are tagged with the
     ``kernel.event_listener`` tag, that event subscribers are tagged
     with the ``kernel.event_subscriber`` tag and that the alias mapping is
-    stored as parameter ``event_dispatcher.event_aliases``. You can change these
-    default values by passing custom values to the constructors of
-    ``RegisterListenersPass`` and ``AddEventAliasesPass``.
+    stored as parameter ``event_dispatcher.event_aliases``.
 
 .. _event_dispatcher-closures-as-listeners:
 
@@ -277,11 +275,9 @@ order. Start by creating this custom event class and documenting it::
     {
         public const NAME = 'order.placed';
 
-        protected $order;
-
-        public function __construct(Order $order)
-        {
-            $this->order = $order;
+        public function __construct(
+            protected Order $order,
+        ) {
         }
 
         public function getOrder(): Order
@@ -291,15 +287,6 @@ order. Start by creating this custom event class and documenting it::
     }
 
 Each listener now has access to the order via the ``getOrder()`` method.
-
-.. note::
-
-    If you don't need to pass any additional data to the event listeners, you
-    can also use the default
-    :class:`Symfony\\Contracts\\EventDispatcher\\Event` class. In such case,
-    you can document the event and its name in a generic ``StoreEvents`` class,
-    similar to the :class:`Symfony\\Component\\HttpKernel\\KernelEvents`
-    class.
 
 Dispatch the Event
 ..................
@@ -323,6 +310,32 @@ of the event to dispatch::
 Notice that the special ``OrderPlacedEvent`` object is created and passed to
 the ``dispatch()`` method. Now, any listener to the ``order.placed``
 event will receive the ``OrderPlacedEvent``.
+
+.. note::
+
+    If you don't need to pass any additional data to the event listeners, you
+    can also use the default
+    :class:`Symfony\\Contracts\\EventDispatcher\\Event` class. In such case,
+    you can document the event and its name in a generic ``StoreEvents`` class,
+    similar to the :class:`Symfony\\Component\\HttpKernel\\KernelEvents`
+    class::
+
+        namespace App\Event;
+
+        class StoreEvents {
+
+            /**
+            * @Event("Symfony\Contracts\EventDispatcher\Event")
+            */
+            public const ORDER_PLACED = 'order.placed';
+        }
+
+    And use the :class:`Symfony\\Contracts\\EventDispatcher\\Event` class to
+    dispatch the event::
+
+        use Symfony\Contracts\EventDispatcher\Event;
+
+        $this->eventDispatcher->dispatch(new Event(), StoreEvents::ORDER_PLACED);
 
 .. _event_dispatcher-using-event-subscribers:
 
@@ -351,7 +364,7 @@ Take the following example of a subscriber that subscribes to the
 
     class StoreSubscriber implements EventSubscriberInterface
     {
-        public static function getSubscribedEvents()
+        public static function getSubscribedEvents(): array
         {
             return [
                 KernelEvents::RESPONSE => [
@@ -362,17 +375,17 @@ Take the following example of a subscriber that subscribes to the
             ];
         }
 
-        public function onKernelResponsePre(ResponseEvent $event)
+        public function onKernelResponsePre(ResponseEvent $event): void
         {
             // ...
         }
 
-        public function onKernelResponsePost(ResponseEvent $event)
+        public function onKernelResponsePost(ResponseEvent $event): void
         {
             // ...
         }
 
-        public function onStoreOrder(OrderPlacedEvent $event)
+        public function onStoreOrder(OrderPlacedEvent $event): void
         {
             // ...
         }
@@ -417,7 +430,7 @@ inside a listener via the
 
     use Acme\Store\Event\OrderPlacedEvent;
 
-    public function onStoreOrder(OrderPlacedEvent $event)
+    public function onStoreOrder(OrderPlacedEvent $event): void
     {
         // ...
 
@@ -460,7 +473,7 @@ is dispatched, are passed as arguments to the listener::
 
     class MyListener
     {
-        public function myEventListener(Event $event, string $eventName, EventDispatcherInterface $dispatcher)
+        public function myEventListener(Event $event, string $eventName, EventDispatcherInterface $dispatcher): void
         {
             // ... do something with the event name
         }
